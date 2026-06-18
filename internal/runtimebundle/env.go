@@ -51,21 +51,29 @@ func configurePath(root, configDir string) string {
 }
 
 func modulePaths(root string) (string, string) {
-	coder := firstGlob(filepath.Join(root, "lib", "ImageMagick-*", "modules-*", "coders"))
-	filter := firstGlob(filepath.Join(root, "lib", "ImageMagick-*", "modules-*", "filters"))
+	coder := firstGlob(
+		filepath.Join(root, "lib", "ImageMagick", "modules-*", "coders"),
+		filepath.Join(root, "lib", "ImageMagick-*", "modules-*", "coders"),
+	)
+	filter := firstGlob(
+		filepath.Join(root, "lib", "ImageMagick", "modules-*", "filters"),
+		filepath.Join(root, "lib", "ImageMagick-*", "modules-*", "filters"),
+	)
 	if coder == "" {
-		coder = filepath.Join(root, "lib", "ImageMagick-*", "modules-Q16HDRI", "coders")
+		coder = filepath.Join(root, "lib", "ImageMagick", "modules-Q16HDRI", "coders")
 	}
 	if filter == "" {
-		filter = filepath.Join(root, "lib", "ImageMagick-*", "modules-Q16HDRI", "filters")
+		filter = filepath.Join(root, "lib", "ImageMagick", "modules-Q16HDRI", "filters")
 	}
 	return coder, filter
 }
 
-func firstGlob(pattern string) string {
-	matches, err := filepath.Glob(pattern)
-	if err != nil || len(matches) == 0 {
-		return ""
+func firstGlob(patterns ...string) string {
+	for _, pattern := range patterns {
+		matches, err := filepath.Glob(pattern)
+		if err == nil && len(matches) > 0 {
+			return matches[0]
+		}
 	}
-	return matches[0]
+	return ""
 }

@@ -17,7 +17,7 @@ cp -a "${prefix}/bin/magick" "${root}/bin/"
 cp -pL "${prefix}"/lib/libMagickWand*.dylib "${root}/lib/"
 cp -pL "${prefix}"/lib/libMagickCore*.dylib "${root}/lib/"
 
-for dir in "${prefix}"/lib/ImageMagick-*; do
+for dir in "${prefix}"/lib/ImageMagick "${prefix}"/lib/ImageMagick-*; do
   [ -d "${dir}" ] && cp -a "${dir}" "${root}/lib/"
 done
 for dir in "${prefix}"/etc/ImageMagick-*; do
@@ -68,7 +68,7 @@ rewrite_dep() {
     "${root}"/lib/*.dylib)
       replacement="@loader_path/${base}"
       ;;
-    "${root}"/lib/ImageMagick-*/*/*/*.dylib)
+    "${root}"/lib/ImageMagick*/*/*/*.dylib|"${root}"/lib/ImageMagick*/*/*/*.so)
       replacement="@loader_path/../../../${base}"
       ;;
     *)
