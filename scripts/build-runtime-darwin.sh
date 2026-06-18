@@ -14,8 +14,8 @@ prefix="$(brew --prefix)"
 cp -a "${prefix}/bin/magick" "${root}/bin/"
 [ -x "${prefix}/bin/gs" ] && cp -a "${prefix}/bin/gs" "${root}/bin/" || true
 
-cp -a "${prefix}"/lib/libMagickWand*.dylib "${root}/lib/"
-cp -a "${prefix}"/lib/libMagickCore*.dylib "${root}/lib/"
+cp -pL "${prefix}"/lib/libMagickWand*.dylib "${root}/lib/"
+cp -pL "${prefix}"/lib/libMagickCore*.dylib "${root}/lib/"
 
 for dir in "${prefix}"/lib/ImageMagick-*; do
   [ -d "${dir}" ] && cp -a "${dir}" "${root}/lib/"
@@ -41,7 +41,7 @@ copy_deps() {
       name="$(basename "${lib}")"
       dest="${root}/lib/${name}"
       if [ ! -e "${dest}" ]; then
-        cp -a "${lib}" "${dest}" || true
+        cp -pL "${lib}" "${dest}" || true
         changed=1
       fi
     done < <(
