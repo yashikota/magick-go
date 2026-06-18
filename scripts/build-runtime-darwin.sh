@@ -54,16 +54,49 @@ copy_deps() {
 }
 copy_deps
 
-find "${root}/lib" -type f -name '*.dylib' | while read -r lib; do
-  install_name_tool -id "@loader_path/$(basename "${lib}")" "${lib}" || true
-  otool -L "${lib}" | awk '/\/opt\/homebrew|\/usr\/local/ {print $1}' | while read -r dep; do
-    base="$(basename "${dep}")"
-    [ -f "${root}/lib/${base}" ] && install_name_tool -change "${dep}" "@loader_path/${base}" "${lib}" || true
+rewrite_dep() {
+  local file="${1}"
+  local dep="${2}"
+  local base
+  local replacement
+  base="$(basename "${dep}")"
+  [ -f "${root}/lib/${base}" ] || return 0
+  case "${file}" in
+    "${root}"/bin/*)
+      replacement="@executable_path/../lib/${base}"
+      ;;
+    "${root}"/lib/*.dylib)
+      replacement="@loader_path/${base}"
+      ;;
+    "${root}"/lib/ImageMagick-*/*/*/*.dylib)
+      replacement="@loader_path/../../../${base}"
+      ;;
+    *)
+      replacement="@loader_path/${base}"
+      ;;
+  esac
+  install_name_tool -change "${dep}" "${replacement}" "${file}" || true
+}
+
+find "${root}/bin" "${root}/lib" -type f \( -perm -0100 -o -name '*.dylib' \) | while read -r file; do
+  case "${file}" in
+    *.dylib)
+      install_name_tool -id "@loader_path/$(basename "${file}")" "${file}" || true
+      ;;
+  esac
+  otool -L "${file}" | awk '/\/opt\/homebrew|\/usr\/local/ {print $1}' | while read -r dep; do
+    rewrite_dep "${file}" "${dep}"
   done
 done
 
-if grep -R "/opt/homebrew\|/usr/local" "${root}/lib" >/dev/null 2>&1; then
+remaining_refs="$(
+  find "${root}/bin" "${root}/lib" -type f \( -perm -0100 -o -name '*.dylib' \) -print0 |
+    xargs -0 otool -L 2>/dev/null |
+    awk '/:$/ {file=$0} /^\t\/opt\/homebrew|^\t\/usr\/local/ {print file " " $1}'
+)"
+if [ -n "${remaining_refs}" ]; then
   echo "absolute Homebrew references remain in runtime" >&2
+  echo "${remaining_refs}" >&2
   exit 1
 fi
 
