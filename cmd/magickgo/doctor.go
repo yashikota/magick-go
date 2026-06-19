@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 
 	"github.com/yashikota/magick-go/internal/magick"
@@ -42,6 +44,12 @@ func runDoctor(args []string) error {
 	}
 	defer ctx.Close()
 	diag := magick.DiagnosticsInfo()
+	formats := diag.Formats
+	support := diag.Support
+	if len(formats) == 0 {
+		formats = cliFormats(ctx.bundle.Root)
+		support = formatSupport(formats)
+	}
 	report := doctorReport{
 		Target:              targetString(),
 		RuntimeRoot:         ctx.bundle.Root,
@@ -53,17 +61,54 @@ func runDoctor(args []string) error {
 		HDRI:                diag.HDRI,
 		Environment:         runtimebundle.Environment(ctx.bundle.Root, ctx.configDir),
 		Configure:           diag.Configure,
-		FormatSupport:       diag.Support,
+		FormatSupport:       support,
 		MissingLibraryNotes: missingLibraryNotes(ctx.bundle.Root),
 	}
 	if opts.verbose {
-		report.Formats = diag.Formats
+		report.Formats = formats
 	}
 	if opts.json {
 		return printJSON(report)
 	}
 	printDoctor(report, opts.verbose)
 	return nil
+}
+
+func formatSupport(formats []string) map[string]bool {
+	set := make(map[string]struct{}, len(formats))
+	for _, f := range formats {
+		set[f] = struct{}{}
+	}
+	support := make(map[string]bool)
+	for _, name := range []string{"JPEG", "PNG", "WEBP", "TIFF", "HEIC", "JXL", "SVG", "PDF"} {
+		_, ok := set[name]
+		support[name] = ok
+	}
+	return support
+}
+
+func cliFormats(root string) []string {
+	cmd := exec.Command(filepath.Join(root, "bin", "magick"), "-list", "format")
+	out, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+	set := make(map[string]struct{})
+	scanner := bufio.NewScanner(strings.NewReader(string(out)))
+	for scanner.Scan() {
+		for _, field := range strings.Fields(scanner.Text()) {
+			name := strings.TrimRight(field, "*:")
+			if name == strings.ToUpper(name) {
+				set[name] = struct{}{}
+			}
+		}
+	}
+	formats := make([]string, 0, len(set))
+	for name := range set {
+		formats = append(formats, name)
+	}
+	sort.Strings(formats)
+	return formats
 }
 
 func printDoctor(r doctorReport, verbose bool) {
