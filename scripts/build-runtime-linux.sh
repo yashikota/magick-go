@@ -112,10 +112,6 @@ for dir in "${prefix}"/share/ImageMagick-* /usr/share/fonts /usr/share/fontconfi
   [ -d "${dir}" ] && cp -a "${dir}" "${root}/share/"
 done
 
-# Remove .la files — ltdl uses hard-coded build paths inside them which
-# break at runtime. Without .la, ltdl falls back to dlopen on the .so directly.
-find "${root}/lib" -name '*.la' -delete
-
 copy_deps() {
   declare -A soname_map
   while IFS= read -r line; do
