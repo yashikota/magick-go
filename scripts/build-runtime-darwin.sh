@@ -21,7 +21,9 @@ fontconfig_prefix="$(brew --prefix fontconfig 2>/dev/null || true)"
 curl -fsSL "${imagemagick_url}" -o "${build}/imagemagick.tar.xz"
 tar -C "${build}" --strip-components=1 -xJf "${build}/imagemagick.tar.xz"
 
-export PKG_CONFIG_PATH="${brew_prefix}/lib/pkgconfig:${brew_prefix}/opt/jpeg-xl/lib/pkgconfig:${brew_prefix}/opt/libheif/lib/pkgconfig:${brew_prefix}/opt/webp/lib/pkgconfig:${brew_prefix}/opt/libpng/lib/pkgconfig:${brew_prefix}/opt/libtiff/lib/pkgconfig:${brew_prefix}/opt/librsvg/lib/pkgconfig:${brew_prefix}/opt/freetype/lib/pkgconfig:${brew_prefix}/opt/openjpeg/lib/pkgconfig:${brew_prefix}/opt/little-cms2/lib/pkgconfig:${brew_prefix}/opt/libraw/lib/pkgconfig:${brew_prefix}/opt/pango/lib/pkgconfig:${brew_prefix}/opt/fontconfig/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+export PKG_CONFIG_PATH="${brew_prefix}/lib/pkgconfig:${brew_prefix}/opt/jpeg-xl/lib/pkgconfig:${brew_prefix}/opt/libheif/lib/pkgconfig:${brew_prefix}/opt/webp/lib/pkgconfig:${brew_prefix}/opt/libpng/lib/pkgconfig:${brew_prefix}/opt/libtiff/lib/pkgconfig:${brew_prefix}/opt/librsvg/lib/pkgconfig:${brew_prefix}/opt/freetype/lib/pkgconfig:${brew_prefix}/opt/openjpeg/lib/pkgconfig:${brew_prefix}/opt/little-cms2/lib/pkgconfig:${brew_prefix}/opt/libraw/lib/pkgconfig:${brew_prefix}/opt/pango/lib/pkgconfig:${brew_prefix}/opt/fontconfig/lib/pkgconfig:${brew_prefix}/opt/libtool/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+export LDFLAGS="-L${brew_prefix}/opt/libtool/lib ${LDFLAGS:-}"
+export CPPFLAGS="-I${brew_prefix}/opt/libtool/include ${CPPFLAGS:-}"
 
 (
   cd "${build}"
