@@ -50,7 +50,19 @@ jobs:
             bash scripts/build-runtime-linux.sh "${{ matrix.runtime }}" "internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst"
           fi
       - name: Test
-        run: go test ./...
+        run: |
+          if [ "${{ matrix.goos }}" = "darwin" ]; then
+            # macOS: DYLD_LIBRARY_PATH must be set before process start for dlopen to find dylibs
+            tmpdir="${RUNNER_TEMP}/magickgo-test-runtime"
+            rm -rf "${tmpdir}"
+            mkdir -p "${tmpdir}"
+            zstd -d "internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst" --stdout | tar -C "${tmpdir}" -xf -
+            export DYLD_LIBRARY_PATH="${tmpdir}/lib"
+            export MAGICK_HOME="${tmpdir}"
+            export MAGICK_CODER_MODULE_PATH="$(find "${tmpdir}/lib" -path '*/modules-*/coders' -type d | head -1)"
+            export MAGICK_CONFIGURE_PATH="$(find "${tmpdir}/etc" -type d -name 'ImageMagick-*' | head -1)"
+          fi
+          go test ./...
       - name: Build binary
         env:
           CGO_ENABLED: "0"
