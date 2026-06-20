@@ -1,269 +1,201 @@
 # magick-go
 
-`magickgo` is a standalone, pure-Go CLI that bundles a complete ImageMagick 7 runtime.
-No system dependencies required — the binary extracts a self-contained
-`runtime-<target>.tar.zst` into the user cache, configures the ImageMagick
-environment, and loads `libMagickWand` dynamically through `purego` (no CGO).
+[日本語版](README.ja.md)
 
-## Supported Targets
+`magickgo` is a standalone ImageMagick 7 CLI built in Go.
 
-| OS    | Architecture | Target          |
-|-------|-------------|-----------------|
-| Linux | amd64       | `linux-amd64`   |
-| Linux | arm64       | `linux-arm64`   |
-| macOS | arm64       | `darwin-arm64`  |
+It ships a complete ImageMagick runtime inside the binary, extracts that runtime
+to the user cache on first use, and calls `libMagickWand` through
+[`purego`](https://github.com/ebitengine/purego). The result is a portable image
+tool with no system ImageMagick install and no CGO requirement.
 
-## Supported Image Formats
+## What it does
 
-ImageMagick 7.1.2-8 Q16-HDRI with the following delegates enabled:
+- Converts images between common and professional formats.
+- Resizes images while preserving aspect ratio.
+- Reads image metadata such as format, dimensions, color depth, and ImageMagick
+  diagnostics.
+- Lists supported formats from the bundled ImageMagick runtime.
+- Uses a safe default policy that blocks risky formats and delegates such as
+  PDF, PS, EPS, MVG, MSL, URL, HTTP, and HTTPS.
 
-### Modern Image Formats
+## Supported targets
 
-| Format | Extension(s)         | Read | Write | Delegate     | Notes                         |
-|--------|---------------------|------|-------|-------------|-------------------------------|
-| JPEG   | `.jpg`, `.jpeg`     | ✓    | ✓     | libjpeg     | Baseline & progressive        |
-| PNG    | `.png`              | ✓    | ✓     | libpng      | 8/16/32/48/64-bit variants    |
-| APNG   | `.apng`             | ✓    | ✓     | libpng      | Animated PNG                  |
-| WebP   | `.webp`             | ✓    | ✓     | libwebp     | Lossy & lossless              |
-| TIFF   | `.tiff`, `.tif`     | ✓    | ✓     | libtiff     | Including BigTIFF (TIFF64)    |
-| GIF    | `.gif`              | ✓    | ✓     | built-in    | Animated support              |
-| BMP    | `.bmp`              | ✓    | ✓     | built-in    | BMP2/BMP3 variants            |
-| HEIC   | `.heic`, `.heif`    | ✓    | ✓     | libheif     | HEVC codec                    |
-| AVIF   | `.avif`             | ✓    | ✓     | libheif+aom | AV1 Image Format              |
-| JXL    | `.jxl`              | ✓    | ✓     | libjxl      | JPEG XL                       |
-| QOI    | `.qoi`              | ✓    | ✓     | built-in    | Quite OK Image                |
+| OS | Architecture | Target |
+| --- | --- | --- |
+| Linux | amd64 | `linux-amd64` |
+| Linux | arm64 | `linux-arm64` |
+| macOS | arm64 | `darwin-arm64` |
 
-### Vector & Document Formats
+## Quick start
 
-| Format | Extension(s)         | Read | Write | Delegate     | Notes                         |
-|--------|---------------------|------|-------|-------------|-------------------------------|
-| SVG    | `.svg`, `.svgz`     | ✓    | ✓     | librsvg     | Rasterized on read            |
-| PDF    | `.pdf`, `.pdfa`     | ✓    | ✓     | ghostscript | Multi-page support            |
-| EPS    | `.eps`, `.epsf`     | ✓    | ✓     | ghostscript | Encapsulated PostScript       |
-| PS     | `.ps`               | ✓    | ✓     | ghostscript | PostScript Level 2/3          |
-
-### Professional & Cinema Formats
-
-| Format | Extension(s)         | Read | Write | Delegate    | Notes                         |
-|--------|---------------------|------|-------|------------|-------------------------------|
-| EXR    | `.exr`              | ✓    | ✓     | openexr    | HDR, multi-channel            |
-| PSD    | `.psd`, `.psb`      | ✓    | ✓     | built-in   | Photoshop (incl. Large PSB)   |
-| DPX    | `.dpx`              | ✓    | ✓     | built-in   | SMPTE 268M digital cinema     |
-| CIN    | `.cin`              | ✓    | ✓     | built-in   | Kodak Cineon                  |
-| HDR    | `.hdr`              | ✓    | ✓     | built-in   | Radiance RGBE                 |
-| FITS   | `.fits`, `.fts`     | ✓    | ✓     | built-in   | Astronomy / scientific        |
-| MIFF   | `.miff`             | ✓    | ✓     | built-in   | ImageMagick native            |
-
-### JPEG 2000 Family
-
-| Format | Extension(s)         | Read | Write | Delegate    | Notes                         |
-|--------|---------------------|------|-------|------------|-------------------------------|
-| JP2    | `.jp2`              | ✓    | ✓     | openjp2    | JPEG 2000 Part 1              |
-| J2K    | `.j2k`, `.j2c`      | ✓    | ✓     | openjp2    | JPEG 2000 codestream          |
-| JPC    | `.jpc`              | ✓    | ✓     | openjp2    | JPEG 2000 codestream          |
-| JPM    | `.jpm`              | ✓    | ✓     | openjp2    | JPEG 2000 compound            |
-
-### Legacy & Interchange Formats
-
-| Format   | Extension(s)     | Read | Write | Notes                         |
-|----------|-----------------|------|-------|-------------------------------|
-| TGA      | `.tga`, `.icb`  | ✓    | ✓     | Targa / Truevision            |
-| ICO      | `.ico`          | ✓    | ✓     | Windows icon                  |
-| CUR      | `.cur`          | ✓    | ✓     | Windows cursor                |
-| PCX      | `.pcx`, `.dcx`  | ✓    | ✓     | PC Paintbrush (multi-page)    |
-| SGI      | `.sgi`          | ✓    | ✓     | Silicon Graphics IRIS         |
-| SUN      | `.sun`, `.ras`  | ✓    | ✓     | Sun Rasterfile                |
-| XBM      | `.xbm`          | ✓    | ✓     | X11 bitmap                    |
-| XPM      | `.xpm`          | ✓    | ✓     | X11 pixmap                    |
-| WBMP     | `.wbmp`         | ✓    | ✓     | Wireless bitmap               |
-| PALM     | `.palm`         | ✓    | ✓     | Palm pixmap                   |
-| PICT     | `.pict`, `.pct` | ✓    | ✓     | Apple QuickDraw               |
-| VIFF     | `.viff`         | ✓    | ✓     | Khoros Visualization          |
-| MNG      | `.mng`          | ✓    | ✓     | Multiple-image PNG            |
-| JNG      | `.jng`          | ✓    | ✓     | JPEG Network Graphics         |
-| DDS      | `.dds`          | ✓    | ✓     | DirectDraw Surface (DXT1/5)   |
-| OTB      | `.otb`          | ✓    | ✓     | On-the-air bitmap             |
-| WPG      | `.wpg`          | ✓    | ✓     | WordPerfect Graphics          |
-
-### Netpbm / Portable Pixmap Family
-
-| Format | Extension(s)     | Read | Write | Notes                         |
-|--------|-----------------|------|-------|-------------------------------|
-| PBM    | `.pbm`          | ✓    | ✓     | Portable bitmap (1-bit)       |
-| PGM    | `.pgm`          | ✓    | ✓     | Portable graymap              |
-| PPM    | `.ppm`          | ✓    | ✓     | Portable pixmap               |
-| PNM    | `.pnm`          | ✓    | ✓     | Portable anymap               |
-| PAM    | `.pam`          | ✓    | ✓     | Portable arbitrary map        |
-| PFM    | `.pfm`          | ✓    | ✓     | Portable float map            |
-| PHM    | `.phm`          | ✓    | ✓     | Portable half-float map       |
-
-### Fax & Braille
-
-| Format   | Extension(s)   | Read | Write | Notes                       |
-|----------|---------------|------|-------|-----------------------------|
-| FAX      | `.fax`        | ✓    | ✓     | Group 3 fax                 |
-| G3       | `.g3`         | ✓    | ✓     | CCITT Group 3               |
-| G4       | `.g4`         | ✓    | ✓     | CCITT Group 4               |
-| UBRL     | `.ubrl`       | ✓    | ✓     | Unicode braille             |
-| ISOBRL   | `.isobrl`     | ✓    | ✓     | ISO/TR 11548-1 braille      |
-
-### Miscellaneous
-
-| Format   | Extension(s)   | Read | Write | Notes                       |
-|----------|---------------|------|-------|-----------------------------|
-| FARBFELD | `.ff`         | ✓    | ✓     | suckless image format       |
-| AAI      | `.aai`        | ✓    | ✓     | Dune HD media player        |
-| AVS      | `.avs`        | ✓    | ✓     | AVS X image                 |
-| FL32     | `.fl32`       | ✓    | ✓     | 32-bit float pixels         |
-| SIXEL    | `.sixel`      | ✓    | ✓     | DEC terminal graphics       |
-| VIPS     | `.vips`       | ✓    | ✓     | VIPS image format           |
-| MTV      | `.mtv`        | ✓    | ✓     | MTV Raytracer               |
-| VICAR    | `.vicar`      | ✓    | ✓     | NASA/JPL VICAR              |
-| RGF      | `.rgf`        | ✓    | ✓     | LEGO MINDSTORMS EV3         |
-| HRZ      | `.hrz`        | ✓    | ✓     | Slow-scan TV                |
-| IPL      | `.ipl`        | ✓    | ✓     | IPLab image                 |
-| MPC      | `.mpc`        | ✓    | ✓     | Magick Pixel Cache          |
-
-### Text & Data Output
-
-| Format | Extension(s)   | Read | Write | Notes                        |
-|--------|---------------|------|-------|------------------------------|
-| TXT    | `.txt`        | ✓    | ✓     | Pixel enumeration            |
-| JSON   | `.json`       | —    | ✓     | Image metadata as JSON       |
-| YAML   | `.yaml`       | —    | ✓     | Image metadata as YAML       |
-
-### Camera RAW (Read-only)
-
-| Format | Extension(s)                              | Notes                        |
-|--------|------------------------------------------|------------------------------|
-| DNG    | `.dng`                                   | Adobe Digital Negative       |
-| CR2    | `.cr2`, `.cr3`, `.crw`                   | Canon RAW                    |
-| NEF    | `.nef`, `.nrw`                           | Nikon RAW                    |
-| ARW    | `.arw`                                   | Sony RAW                     |
-| ORF    | `.orf`                                   | Olympus RAW                  |
-| RAF    | `.raf`                                   | Fujifilm RAW                 |
-| RW2    | `.rw2`                                   | Panasonic RAW                |
-| PEF    | `.pef`                                   | Pentax RAW                   |
-| ERF    | `.erf`                                   | Epson RAW                    |
-| SRW    | `.srw`, `.sr2`, `.srf`                   | Samsung RAW                  |
-| KDC    | `.kdc`, `.k25`                           | Kodak RAW                    |
-| MOS    | `.mos`                                   | Leaf RAW                     |
-| MEF    | `.mef`                                   | Mamiya RAW                   |
-| IIQ    | `.iiq`                                   | Phase One RAW                |
-| 3FR    | `.3fr`                                   | Hasselblad RAW               |
-| X3F    | `.x3f`                                   | Sigma RAW                    |
-| MDC    | `.mdc`                                   | Minolta RAW                  |
-| DCR    | `.dcr`                                   | Kodak RAW                    |
-
-### Platform-specific Formats
-
-| Format | Linux | macOS | Notes                         |
-|--------|-------|-------|-------------------------------|
-| DJVU   | ✓     | —     | DjVu (requires djvulibre)     |
-| JBIG   | ✓     | —     | JBIG1 compression             |
-| WMF    | ✓     | —     | Windows Metafile              |
-| FFTW   | ✓     | —     | Fourier transform             |
-| RAW    | ✓     | —     | libraw camera RAW processing  |
-
-### Delegates
-
-| Platform | Delegates                                                                                              |
-|----------|-------------------------------------------------------------------------------------------------------|
-| Linux    | bzlib cairo djvu fftw fontconfig freetype heic jbig jng jp2 jpeg jxl lcms lqr lzma openexr pango png ps raqm raw rsvg tiff webp wmf xml zip zlib zstd |
-| macOS    | bzlib cairo fontconfig freetype heic jng jp2 jpeg jxl lcms lzma openexr pango png ps rsvg tiff webp xml zlib zstd |
-
-### Format Limitations
-
-| Format | Limitation | Reason |
-|--------|-----------|--------|
-| HEIC/HEIF/AVIF | Write requires CLI mode | Coder module (`heic.so`) needs `libheif` loaded via dynamic linker at process start; in-process purego binding may not resolve the delegate |
-| JXL | macOS: CLI mode only | `jxl.so` coder module cannot resolve `libjxl` dylib dependencies in-process on macOS; works via CLI or on Linux |
-| PDF/EPS/PS | Blocked by default policy | Ghostscript delegate is security-sensitive; use `--policy permissive` to enable |
-| SVG (write) | Requires `potrace` | SVG vectorization needs external `potrace` binary (not bundled) |
-| DJVU/WMF | Read-only | No encode delegate exists for these formats |
-| Camera RAW | Read-only | libraw provides decode only |
-
-### Security Policy
-
-Potentially dangerous formats (PDF, PS, EPS, MVG, MSL) and delegates
-(URL, HTTP, HTTPS) are blocked by default. Use `--policy permissive` to
-enable all formats in trusted environments.
-
-### Test Coverage
-
-CI runs actual image I/O tests (not just format registration checks) for **75+ writable formats**:
-
-- **Format conversion test**: Converts a valid PNG to each target format and verifies non-empty output with correct magic bytes
-- **Round-trip test**: PNG → format → PNG, verifies dimensions are preserved (18 formats)
-- **Format registration test**: Verifies all expected formats are reported by ImageMagick's coder registry
-
-Formats excluded from write tests due to environmental constraints (HEIC/AVIF encode delegate, PDF policy, SVG external tool) are still validated via `doctor --verbose` in CI which confirms the delegate libraries are linked and the format is registered for read.
-
-## Commands
+Build a runtime bundle, then build the Go CLI:
 
 ```sh
-magickgo doctor --verbose     # Show runtime info, delegates, format support
-magickgo formats              # List all supported formats
-magickgo identify input.png   # Image metadata (dimensions, format, depth)
-magickgo convert input.heic output.webp              # Format conversion
-magickgo convert input.png output.jpg --quality 85   # With quality
-magickgo convert input.jpg output.jpg --strip        # Strip metadata
-magickgo resize input.jpg output.webp --width 1200   # Resize (aspect-ratio preserved)
-```
-
-### Options
-
-| Flag             | Description                              |
-|------------------|------------------------------------------|
-| `--quality N`    | Output quality (1-100, format-dependent) |
-| `--strip`        | Remove EXIF/metadata                     |
-| `--auto-orient`  | Auto-rotate based on EXIF orientation    |
-| `--format FMT`   | Override output format                   |
-| `--width N`      | Target width for resize (Lanczos filter) |
-| `--policy P`     | `safe` (default) or `permissive`         |
-| `--json`         | JSON output (doctor, identify, formats)  |
-| `--verbose`      | Verbose output (doctor)                  |
-
-## Architecture
-
-```
-┌─────────────────────────────────────┐
-│         magickgo binary             │
-│  (CGO_ENABLED=0, pure Go)          │
-├─────────────────────────────────────┤
-│  cmd/magickgo/     CLI commands     │
-│  internal/magick/  purego bindings  │
-│  internal/runtimebundle/            │
-│    ├── embed.go    //go:embed       │
-│    ├── extract.go  zstd extraction  │
-│    ├── env.go      LD_LIBRARY_PATH  │
-│    └── policy.go   security policy  │
-├─────────────────────────────────────┤
-│  runtime-<target>.tar.zst           │
-│  (embedded at build time)           │
-│    ├── bin/magick                    │
-│    ├── lib/libMagickWand-7.*.so     │
-│    ├── lib/libMagickCore-7.*.so     │
-│    ├── lib/*.so (all dependencies)  │
-│    ├── lib/ImageMagick-*/modules/   │
-│    └── etc/ImageMagick-*/           │
-└─────────────────────────────────────┘
-```
-
-## Building
-
-The repository does not commit runtime bundles. CI builds them from source:
-
-```sh
-# Linux (builds ImageMagick from source)
+# Linux example
 bash scripts/build-runtime-linux.sh linux-amd64 internal/runtimebundle/assets/runtime-linux-amd64.tar.zst
 
-# macOS (builds ImageMagick from source with Homebrew dependencies)
+# macOS example
 bash scripts/build-runtime-darwin.sh darwin-arm64 internal/runtimebundle/assets/runtime-darwin-arm64.tar.zst
 
-# Then build the Go binary
 CGO_ENABLED=0 go build -o dist/magickgo ./cmd/magickgo
 ```
 
-CI caches the runtime tarball keyed on script content hash. First build takes
-5-10 minutes; subsequent builds with unchanged scripts complete in under 3 minutes.
+Run diagnostics:
+
+```sh
+dist/magickgo doctor --verbose
+```
+
+Convert and resize images:
+
+```sh
+dist/magickgo identify input.png
+dist/magickgo convert input.heic output.webp
+dist/magickgo convert input.png output.jpg --quality 85 --strip
+dist/magickgo resize input.jpg output.webp --width 1200
+```
+
+## Commands
+
+| Command | Purpose |
+| --- | --- |
+| `magickgo doctor [--verbose] [--json]` | Show runtime, library, delegate, and format diagnostics. |
+| `magickgo formats [--json]` | List formats registered by the bundled ImageMagick runtime. |
+| `magickgo identify [options] input.png` | Print image metadata. |
+| `magickgo convert [options] input output` | Convert one image to another format. |
+| `magickgo resize [options] input output --width N` | Resize to a target width with aspect ratio preserved. |
+
+### Common options
+
+| Flag | Description |
+| --- | --- |
+| `--quality N` | Output quality, usually `1` to `100`, depending on the format. |
+| `--strip` | Remove EXIF and other metadata. |
+| `--auto-orient` | Apply EXIF orientation before writing. |
+| `--format FMT` | Override the output format. |
+| `--json` | Print JSON output for commands that support it. |
+| `--verbose` | Print extended diagnostics for `doctor`. |
+| `--policy safe\|permissive` | Use the safe default policy or allow all ImageMagick policies. |
+| `--unsafe-enable-pdf` | Enable PDF, PS, and EPS handling for this run. Prefer `--policy permissive` for trusted inputs. |
+
+## Architecture
+
+```mermaid
+flowchart TD
+    User["User"] --> CLI["cmd/magickgo<br/>CLI commands"]
+    CLI --> Runtime["internal/runtimebundle<br/>runtime discovery and extraction"]
+    Runtime --> Assets["Embedded runtime-&lt;target&gt;.tar.zst<br/>ImageMagick, delegates, modules, config"]
+    Runtime --> Cache["User cache<br/>target + runtime hash"]
+    CLI --> Policy["Temporary policy.xml<br/>safe or permissive"]
+    CLI --> Env["ImageMagick environment<br/>MAGICK_HOME, module paths, library path"]
+    Env --> Wand["internal/magick<br/>purego bindings"]
+    Wand --> Lib["libMagickWand<br/>bundled shared library"]
+    Lib --> Modules["ImageMagick coder modules<br/>delegates and filters"]
+    Lib --> Output["Converted image<br/>metadata or diagnostics"]
+```
+
+Startup flow:
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant CLI as magickgo command
+    participant Bundle as runtimebundle
+    participant Cache as User cache
+    participant Policy as policy.xml
+    participant Magick as internal/magick
+    participant Wand as libMagickWand
+
+    User->>CLI: run convert / resize / identify / doctor
+    CLI->>Bundle: Ensure()
+    Bundle->>Bundle: choose target from GOOS/GOARCH
+    Bundle->>Cache: reuse extracted runtime if hash marker matches
+    Bundle-->>Cache: otherwise extract embedded tar.zst
+    CLI->>Policy: write temporary safe or permissive policy
+    CLI->>Bundle: configure ImageMagick environment
+    CLI->>Magick: Load(runtime root)
+    Magick->>Wand: purego dlopen + register functions
+    CLI->>Wand: read, transform, write, or inspect image
+    Wand-->>CLI: result
+```
+
+The runtime is cached by target and bundle hash:
+
+- Linux: under the OS user cache directory, usually
+  `~/.cache/magickgo/runtime`.
+- macOS: `~/Library/Caches/magickgo/runtime`.
+
+## Runtime contents
+
+Each `runtime-<target>.tar.zst` contains the pieces required to run
+ImageMagick without a system install:
+
+```text
+bin/magick
+lib/libMagickWand-7.*
+lib/libMagickCore-7.*
+lib/ImageMagick-*/modules-*/coders
+lib/ImageMagick-*/modules-*/filters
+etc/ImageMagick-7
+lib/* delegate libraries
+```
+
+The Go binary embeds that archive with `//go:embed`. Runtime extraction is
+content-addressed by SHA-256, so updating the embedded archive creates a new
+cache directory automatically.
+
+## Supported image formats
+
+The exact format list comes from the bundled ImageMagick build. Check it with:
+
+```sh
+magickgo formats
+magickgo doctor --verbose
+```
+
+Commonly supported formats include:
+
+| Category | Examples |
+| --- | --- |
+| Web and raster | JPEG, PNG, APNG, WebP, TIFF, GIF, BMP, ICO |
+| Modern codecs | HEIC, HEIF, AVIF, JXL |
+| Vector and documents | SVG, PDF, EPS, PS |
+| Professional and cinema | EXR, PSD, DPX, CIN, HDR, FITS |
+| JPEG 2000 | JP2, J2K, JPC, JPM |
+| Netpbm | PBM, PGM, PPM, PNM, PAM, PFM |
+| Camera RAW | DNG, CR2/CR3, NEF, ARW, ORF, RAF, RW2, PEF, SRW, and others |
+
+### Known limitations
+
+| Format or feature | Limitation |
+| --- | --- |
+| PDF, PS, EPS | Blocked by the safe default policy. Use `--policy permissive` only for trusted inputs. |
+| HEIC, HEIF, AVIF write | May require ImageMagick CLI mode depending on delegate loading behavior. |
+| JXL on macOS | May require CLI mode because the coder module can depend on dynamic linker behavior. |
+| SVG write | Requires the external `potrace` binary for vectorization; it is not bundled. |
+| Camera RAW | Read-only because the delegate decodes RAW files but does not encode them. |
+
+## Development
+
+Run tests:
+
+```sh
+go test ./...
+```
+
+Build the CLI after preparing a runtime bundle:
+
+```sh
+CGO_ENABLED=0 go build -o dist/magickgo ./cmd/magickgo
+```
+
+The repository does not commit runtime bundles. CI builds them from source with:
+
+```sh
+bash scripts/build-runtime-linux.sh linux-amd64 internal/runtimebundle/assets/runtime-linux-amd64.tar.zst
+bash scripts/build-runtime-darwin.sh darwin-arm64 internal/runtimebundle/assets/runtime-darwin-arm64.tar.zst
+```
+
+CI caches runtime archives by script content hash, so the first runtime build is
+the slow path and unchanged builds reuse the cache.
