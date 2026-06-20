@@ -39,7 +39,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst
-          key: runtime-${{ matrix.runtime }}-${{ hashFiles('scripts/build-runtime-*.sh') }}-v2
+          key: runtime-${{ matrix.runtime }}-${{ hashFiles('scripts/build-runtime-*.sh') }}-v3
       - name: Build ImageMagick runtime
         if: steps.cache-runtime.outputs.cache-hit != 'true'
         timeout-minutes: 60
@@ -56,20 +56,6 @@ jobs:
           # because CGO_ENABLED=0 dlopen cannot pick up setenv changes.
           libpath=$(go run ./internal/runtimebundle/printlibpath)
           echo "Runtime lib path: ${libpath}"
-          echo "LD_LIBRARY_PATH will be: ${libpath}"
-          ls "${libpath}"/libraqm* 2>/dev/null || echo "WARNING: libraqm not found in runtime"
-          if [ "${{ matrix.goos }}" = "linux" ]; then
-            echo "libraqm deps:"
-            patchelf --print-needed "${libpath}"/libraqm.so.0 2>/dev/null || ldd "${libpath}"/libraqm.so.0 2>/dev/null || true
-            echo "Checking if all raqm deps exist in runtime:"
-            for dep in $(patchelf --print-needed "${libpath}"/libraqm.so.0 2>/dev/null); do
-              if [ -f "${libpath}/${dep}" ]; then echo "  OK: ${dep}"; else echo "  MISSING: ${dep}"; fi
-            done
-            echo "RPATH of libMagickWand:"
-            patchelf --print-rpath "${libpath}"/libMagickWand-7.Q16HDRI.so 2>/dev/null || true
-            echo "RPATH of libraqm:"
-            patchelf --print-rpath "${libpath}"/libraqm.so.0 2>/dev/null || true
-          fi
           if [ "${{ matrix.goos }}" = "darwin" ]; then
             export DYLD_LIBRARY_PATH="${libpath}"
           else
