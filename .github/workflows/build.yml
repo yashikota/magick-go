@@ -1,0 +1,85 @@
+name: build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            goos: linux
+            goarch: amd64
+            runtime: linux-amd64
+          - os: ubuntu-24.04-arm
+            goos: linux
+            goarch: arm64
+            runtime: linux-arm64
+          - os: macos-14
+            goos: darwin
+            goarch: arm64
+            runtime: darwin-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Cache runtime
+        id: cache-runtime
+        uses: actions/cache@v4
+        with:
+          path: internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst
+          key: runtime-${{ matrix.runtime }}-${{ hashFiles('scripts/build-runtime-*.sh') }}-v3
+      - name: Build ImageMagick runtime
+        if: steps.cache-runtime.outputs.cache-hit != 'true'
+        timeout-minutes: 60
+        run: |
+          if [ "${{ matrix.goos }}" = "darwin" ]; then
+            bash scripts/build-runtime-darwin.sh "${{ matrix.runtime }}" "internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst"
+          else
+            bash scripts/build-runtime-linux.sh "${{ matrix.runtime }}" "internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst"
+          fi
+      - name: Test
+        run: |
+          # Ensure() extracts the runtime and returns the lib path.
+          # We must set LD_LIBRARY_PATH/DYLD_LIBRARY_PATH BEFORE go test
+          # because CGO_ENABLED=0 dlopen cannot pick up setenv changes.
+          libpath=$(go run ./internal/runtimebundle/printlibpath)
+          echo "Runtime lib path: ${libpath}"
+          if [ "${{ matrix.goos }}" = "darwin" ]; then
+            export DYLD_LIBRARY_PATH="${libpath}"
+          else
+            export LD_LIBRARY_PATH="${libpath}"
+          fi
+          go test ./...
+      - name: Build binary
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: go build -o "dist/magickgo-${{ matrix.runtime }}" ./cmd/magickgo
+      - name: Doctor
+        run: |
+          "./dist/magickgo-${{ matrix.runtime }}" doctor --verbose
+          "./dist/magickgo-${{ matrix.runtime }}" doctor --json > doctor.json
+          formats="JPEG PNG WEBP TIFF HEIC SVG PDF"
+          if [ "${{ matrix.goos }}" = "linux" ]; then
+            formats="${formats} JXL"
+          fi
+          for format in ${formats}; do
+            grep -q "\"${format}\": true" doctor.json
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: magickgo-${{ matrix.runtime }}
+          path: dist/magickgo-${{ matrix.runtime }}
