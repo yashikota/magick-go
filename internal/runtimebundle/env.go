@@ -45,9 +45,6 @@ func Environment(root, configDir string) map[string]string {
 
 func configurePath(root, configDir string) string {
 	paths := []string{}
-	if configDir != "" {
-		paths = append(paths, configDir)
-	}
 	if moduleConfig := firstGlob(
 		filepath.Join(root, "lib", "ImageMagick", "config-*"),
 		filepath.Join(root, "lib", "ImageMagick-*", "config-*"),
@@ -55,6 +52,9 @@ func configurePath(root, configDir string) string {
 		paths = append(paths, moduleConfig)
 	}
 	paths = append(paths, filepath.Join(root, "etc", "ImageMagick-7"))
+	if configDir != "" {
+		paths = append(paths, configDir)
+	}
 	return strings.Join(paths, string(os.PathListSeparator))
 }
 

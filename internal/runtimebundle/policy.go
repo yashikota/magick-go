@@ -40,5 +40,7 @@ const safePolicyXML = `<?xml version="1.0" encoding="UTF-8"?>
 
 const permissivePolicyXML = `<?xml version="1.0" encoding="UTF-8"?>
 <policymap>
+  <policy domain="coder" rights="read|write" pattern="*" />
+  <policy domain="delegate" rights="execute" pattern="*" />
 </policymap>
 `

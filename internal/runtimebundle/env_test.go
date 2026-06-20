@@ -11,7 +11,7 @@ func TestConfigurePathPrependsProcessConfig(t *testing.T) {
 	configDir := filepath.Join(string(filepath.Separator), "policy")
 
 	got := configurePath(root, configDir)
-	want := configDir + string(os.PathListSeparator) + filepath.Join(root, "etc", "ImageMagick-7")
+	want := filepath.Join(root, "etc", "ImageMagick-7") + string(os.PathListSeparator) + configDir
 	if got != want {
 		t.Fatalf("configurePath() = %q, want %q", got, want)
 	}
@@ -26,9 +26,9 @@ func TestConfigurePathIncludesModuleConfig(t *testing.T) {
 	}
 
 	got := configurePath(root, configDir)
-	want := configDir +
-		string(os.PathListSeparator) + moduleConfig +
-		string(os.PathListSeparator) + filepath.Join(root, "etc", "ImageMagick-7")
+	want := moduleConfig +
+		string(os.PathListSeparator) + filepath.Join(root, "etc", "ImageMagick-7") +
+		string(os.PathListSeparator) + configDir
 	if got != want {
 		t.Fatalf("configurePath() = %q, want %q", got, want)
 	}
