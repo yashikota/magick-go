@@ -55,6 +55,9 @@ jobs:
           # We must set LD_LIBRARY_PATH/DYLD_LIBRARY_PATH BEFORE go test
           # because CGO_ENABLED=0 dlopen cannot pick up setenv changes.
           libpath=$(go run ./internal/runtimebundle/printlibpath)
+          echo "Runtime lib path: ${libpath}"
+          ls "${libpath}"/libraqm* 2>/dev/null || echo "WARNING: libraqm not found in runtime"
+          ls "${libpath}"/libMagick* 2>/dev/null | head -5
           if [ "${{ matrix.goos }}" = "darwin" ]; then
             export DYLD_LIBRARY_PATH="${libpath}"
           else
