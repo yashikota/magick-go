@@ -1,0 +1,15 @@
+/* UIL */
+value
+  UIL_ct : color_table(
+    color('#0000FFFF',background) = ' ');
+  UIL_icon : icon(color_table = UIL_ct,
+    "          ",
+    "          ",
+    "          ",
+    "          ",
+    "          ",
+    "          ",
+    "          ",
+    "          ",
+    "          ",
+    "          ");

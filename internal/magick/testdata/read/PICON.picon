@@ -1,0 +1,17 @@
+/* XPM */
+static const char *PICON[] = {
+/* columns rows colors chars-per-pixel */
+"10 10 1 1",
+"  c blue",
+/* pixels */
+"          ",
+"          ",
+"          ",
+"          ",
+"          ",
+"          ",
+"          ",
+"          ",
+"          ",
+"          "
+};

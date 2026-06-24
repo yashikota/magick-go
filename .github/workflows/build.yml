@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  test:
     strategy:
       fail-fast: false
       matrix:
@@ -62,6 +62,46 @@ jobs:
             export LD_LIBRARY_PATH="${libpath}"
           fi
           go test ./...
+
+  build:
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            goos: linux
+            goarch: amd64
+            runtime: linux-amd64
+          - os: ubuntu-24.04-arm
+            goos: linux
+            goarch: arm64
+            runtime: linux-arm64
+          - os: macos-14
+            goos: darwin
+            goarch: arm64
+            runtime: darwin-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Cache runtime
+        id: cache-runtime
+        uses: actions/cache@v4
+        with:
+          path: internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst
+          key: runtime-${{ matrix.runtime }}-${{ hashFiles('scripts/build-runtime-*.sh') }}-v4
+      - name: Build ImageMagick runtime
+        if: steps.cache-runtime.outputs.cache-hit != 'true'
+        timeout-minutes: 60
+        run: |
+          if [ "${{ matrix.goos }}" = "darwin" ]; then
+            bash scripts/build-runtime-darwin.sh "${{ matrix.runtime }}" "internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst"
+          else
+            bash scripts/build-runtime-linux.sh "${{ matrix.runtime }}" "internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst"
+          fi
       - name: Build binary
         env:
           CGO_ENABLED: "0"

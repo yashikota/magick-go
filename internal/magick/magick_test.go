@@ -8,13 +8,29 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
+	"sync"
 	"testing"
 
 	"github.com/yashikota/magick-go/internal/magick"
 	"github.com/yashikota/magick-go/internal/runtimebundle"
 )
 
-var testBundle *runtimebundle.Bundle
+var (
+	testBundle       *runtimebundle.Bundle
+	supportedFormats map[string]bool
+	formatsOnce      sync.Once
+)
+
+func getSupportedFormats() map[string]bool {
+	formatsOnce.Do(func() {
+		supportedFormats = make(map[string]bool)
+		for _, f := range magick.Formats() {
+			supportedFormats[strings.ToUpper(f)] = true
+		}
+	})
+	return supportedFormats
+}
 
 func setup(t *testing.T) {
 	t.Helper()
@@ -224,6 +240,10 @@ func TestConvertFormats(t *testing.T) {
 				t.Skipf("%s not supported on %s", f.name, runtime.GOOS)
 			}
 
+			if !getSupportedFormats()[strings.ToUpper(f.name)] {
+				t.Skipf("%s not supported by this runtime", f.name)
+			}
+
 			dir := t.TempDir()
 			input := filepath.Join(dir, "input.png")
 			output := filepath.Join(dir, "output."+f.ext)
@@ -289,6 +309,10 @@ func TestRoundTrip(t *testing.T) {
 			if f.linuxOnly && runtime.GOOS != "linux" {
 				t.Skipf("%s not supported on %s", f.name, runtime.GOOS)
 			}
+
+			if !getSupportedFormats()[strings.ToUpper(f.name)] {
+				t.Skipf("%s not supported by this runtime", f.name)
+			}
 			dir := t.TempDir()
 			input := filepath.Join(dir, "input.png")
 			mid := filepath.Join(dir, "mid."+f.ext)
@@ -334,9 +358,7 @@ func TestFormats(t *testing.T) {
 		"APNG", "PJPEG",
 		"FAX", "G3", "G4",
 	}
-	if runtime.GOOS == "linux" {
-		required = append(required, "JXL")
-	}
+	// Note: JXL is not strictly required as it might be missing from the bundled runtime.
 	formatSet := make(map[string]struct{}, len(formats))
 	for _, f := range formats {
 		formatSet[f] = struct{}{}

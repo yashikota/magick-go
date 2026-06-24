@@ -187,7 +187,7 @@ copy_deps() {
 copy_deps
 
 find "${root}/bin" "${root}/lib" -type f \( -perm -0100 -o -name '*.so*' \) \
-  -exec patchelf --force-rpath --set-rpath '$ORIGIN/../lib:$ORIGIN' {} \; 2>/dev/null || true
+  -exec patchelf --force-rpath --set-rpath '$ORIGIN/../../../../:$ORIGIN/../../../:$ORIGIN/../lib:$ORIGIN' {} \; 2>/dev/null || true
 
 missing_deps="$(
   find "${root}/bin" "${root}/lib" -type f \( -perm -0100 -o -name '*.so*' \) -print0 |
