@@ -292,7 +292,7 @@ func compareImages(t *testing.T, pathA, pathB string, maxDiff float64) {
 func TestAllFormatsCompatibility(t *testing.T) {
 	setup(t)
 
-	testdataDir := filepath.Join("testdata")
+	testdataDir := filepath.Join("..", "..", "testdata")
 	readDir := filepath.Join(testdataDir, "read")
 	writeDir := filepath.Join(testdataDir, "write")
 
