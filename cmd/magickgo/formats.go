@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/yashikota/magick-go/internal/magick"
+	"github.com/yashikota/magick-go/pkg/magick"
 )
 
 func runFormats(args []string) error {

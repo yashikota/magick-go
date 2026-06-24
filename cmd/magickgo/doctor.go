@@ -11,8 +11,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/yashikota/magick-go/internal/magick"
-	"github.com/yashikota/magick-go/internal/runtimebundle"
+	"github.com/yashikota/magick-go/pkg/magick"
+	"github.com/yashikota/magick-go/pkg/runtimebundle"
 )
 
 type doctorReport struct {
@@ -49,6 +49,9 @@ func runDoctor(args []string) error {
 	if len(formats) == 0 {
 		formats = cliFormats(ctx.bundle.Root)
 		support = formatSupport(formats)
+	}
+	if !isGhostscriptFunctional(ctx.bundle.Root) {
+		support["PDF"] = false
 	}
 	report := doctorReport{
 		Target:              targetString(),
@@ -177,7 +180,27 @@ func missingLibraryNotes(root string) []string {
 			}
 		}
 	}
+	if !isGhostscriptFunctional(root) {
+		notes = append(notes, "Ghostscript (gs): required to read/render PDF, PS, and EPS formats, but was not found or is not functional")
+	}
 	return notes
+}
+
+func isGhostscriptFunctional(root string) bool {
+	// Check bundled gs
+	bundledGS := filepath.Join(root, "bin", "gs")
+	if info, err := os.Stat(bundledGS); err == nil && !info.IsDir() {
+		cmd := exec.Command(bundledGS, "--version")
+		if err := cmd.Run(); err == nil {
+			return true
+		}
+	}
+	// Check system gs
+	cmd := exec.Command("gs", "--version")
+	if err := cmd.Run(); err == nil {
+		return true
+	}
+	return false
 }
 
 func diagnosticLibraryFiles(root string) []string {

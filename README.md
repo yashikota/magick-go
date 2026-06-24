@@ -13,11 +13,10 @@ tool with no system ImageMagick install and no CGO requirement.
 
 - Converts images between common and professional formats.
 - Resizes images while preserving aspect ratio.
-- Reads image metadata such as format, dimensions, color depth, and ImageMagick
-  diagnostics.
+- Reads image metadata such as format, dimensions, color depth, and ImageMagick diagnostics.
 - Lists supported formats from the bundled ImageMagick runtime.
-- Uses a safe default policy that blocks risky formats and delegates such as
-  PDF, PS, EPS, MVG, MSL, URL, HTTP, and HTTPS.
+- Uses a safe default policy that blocks risky formats and delegates such as PDF, PS, EPS, MVG, MSL, URL, HTTP, and HTTPS.
+- **Transparent pass-through**: Falls back to the bundled ImageMagick CLI directly when unrecognized flags (like `-resize`, `-rotate`, or `-crop`) are passed, serving as a complete drop-in replacement for the `magick` CLI.
 
 ## Supported targets
 
@@ -33,10 +32,10 @@ Build a runtime bundle, then build the Go CLI:
 
 ```sh
 # Linux example
-bash scripts/build-runtime-linux.sh linux-amd64 internal/runtimebundle/assets/runtime-linux-amd64.tar.zst
+bash scripts/build-runtime-linux.sh linux-amd64 pkg/runtimebundle/assets/runtime-linux-amd64.tar.zst
 
 # macOS example
-bash scripts/build-runtime-darwin.sh darwin-arm64 internal/runtimebundle/assets/runtime-darwin-arm64.tar.zst
+bash scripts/build-runtime-darwin.sh darwin-arm64 pkg/runtimebundle/assets/runtime-darwin-arm64.tar.zst
 
 CGO_ENABLED=0 go build -o dist/magickgo ./cmd/magickgo
 ```
@@ -58,13 +57,18 @@ dist/magickgo resize input.jpg output.webp --width 1200
 
 ## Commands
 
+`magick-go` can be used exactly like the original `magick` CLI by passing any ImageMagick parameters directly.
+
+If the first argument matches one of the custom helper commands, it runs the fast in-process Go version:
+
 | Command | Purpose |
 | --- | --- |
 | `magickgo doctor [--verbose] [--json]` | Show runtime, library, delegate, and format diagnostics. |
 | `magickgo formats [--json]` | List formats registered by the bundled ImageMagick runtime. |
-| `magickgo identify [options] input.png` | Print image metadata. |
-| `magickgo convert [options] input output` | Convert one image to another format. |
+| `magickgo identify [options] input.png` | Print image metadata (fast in-process Go version). |
+| `magickgo convert [options] input output` | Convert one image to another format (fast in-process Go version). |
 | `magickgo resize [options] input output --width N` | Resize to a target width with aspect ratio preserved. |
+| `magickgo exec [options] [args...]` | Run the bundled `magick` CLI directly (legacy/explicit subcommand). |
 
 ### Common options
 
@@ -79,17 +83,32 @@ dist/magickgo resize input.jpg output.webp --width 1200
 | `--policy safe\|permissive` | Use the safe default policy or allow all ImageMagick policies. |
 | `--unsafe-enable-pdf` | Enable PDF, PS, and EPS handling for this run. Prefer `--policy permissive` for trusted inputs. |
 
+### Direct ImageMagick Command Pass-through
+
+Any unrecognized subcommand or flag (such as standard ImageMagick options like `-resize`, `-rotate`, `-crop`) will be forwarded directly to the bundled ImageMagick binary. This allows `magick-go` to act as a drop-in replacement for the `magick` CLI:
+
+```sh
+# Run standard ImageMagick commands directly
+dist/magickgo input.png -resize 50% -rotate 90 output.png
+
+# Forward convert with complex flags
+dist/magickgo convert input.png -colorspace Gray -background white -flatten output.jpg
+
+# Set safety policy on direct commands (extracted automatically by magick-go)
+dist/magickgo --policy permissive input.pdf -density 300 output.png
+```
+
 ## Architecture
 
 ```mermaid
 flowchart TD
     User["User"] --> CLI["cmd/magickgo<br/>CLI commands"]
-    CLI --> Runtime["internal/runtimebundle<br/>runtime discovery and extraction"]
+    CLI --> Runtime["pkg/runtimebundle<br/>runtime discovery and extraction"]
     Runtime --> Assets["Embedded runtime-&lt;target&gt;.tar.zst<br/>ImageMagick, delegates, modules, config"]
     Runtime --> Cache["User cache<br/>target + runtime hash"]
     CLI --> Policy["Temporary policy.xml<br/>safe or permissive"]
     CLI --> Env["ImageMagick environment<br/>MAGICK_HOME, module paths, library path"]
-    Env --> Wand["internal/magick<br/>purego bindings"]
+    Env --> Wand["pkg/magick<br/>purego bindings"]
     Wand --> Lib["libMagickWand<br/>bundled shared library"]
     Lib --> Modules["ImageMagick coder modules<br/>delegates and filters"]
     Lib --> Output["Converted image<br/>metadata or diagnostics"]
@@ -104,7 +123,7 @@ sequenceDiagram
     participant Bundle as runtimebundle
     participant Cache as User cache
     participant Policy as policy.xml
-    participant Magick as internal/magick
+    participant Magick as pkg/magick
     participant Wand as libMagickWand
 
     User->>CLI: run convert / resize / identify / doctor
@@ -161,20 +180,30 @@ Commonly supported formats include:
 | Web and raster | JPEG, PNG, APNG, WebP, TIFF, GIF, BMP, ICO |
 | Modern codecs | HEIC, HEIF, AVIF, JXL |
 | Vector and documents | SVG, PDF, EPS, PS |
-| Professional and cinema | EXR, PSD, DPX, CIN, HDR, FITS |
+| Professional and cinema | EXR, PSD, PSB, DPX, CIN, HDR, FITS |
 | JPEG 2000 | JP2, J2K, JPC, JPM |
 | Netpbm | PBM, PGM, PPM, PNM, PAM, PFM |
 | Camera RAW | DNG, CR2/CR3, NEF, ARW, ORF, RAF, RW2, PEF, SRW, and others |
 
-### Known limitations
+### Differences from Original ImageMagick
 
-| Format or feature | Limitation |
-| --- | --- |
-| PDF, PS, EPS | Blocked by the safe default policy. Use `--policy permissive` only for trusted inputs. |
-| HEIC, HEIF, AVIF write | May require ImageMagick CLI mode depending on delegate loading behavior. |
-| JXL on macOS | May require CLI mode because the coder module can depend on dynamic linker behavior. |
-| SVG write | Requires the external `potrace` binary for vectorization; it is not bundled. |
-| Camera RAW | Read-only because the delegate decodes RAW files but does not encode them. |
+`magick-go` is designed as a standalone wrapper with a bundled runtime and has several key differences from a standard system-installed ImageMagick:
+
+1. **CLI Capabilities**: It is **not** a drop-in replacement for the `magick` CLI. It only exposes basic features: metadata identification (`identify`), resizing by width with aspect ratio preservation (`resize`), format conversion (`convert`), format listing (`formats`), and environmental diagnostics (`doctor`). It does not support complex filter pipelines, image composition, drawing, text annotations, cropping, or rotation flags.
+2. **CGO-Free Dynamic Loading**: It uses `purego` to dynamically load the bundled `libMagickWand` shared library at runtime. This avoids compile-time CGO requirements but makes execution dependent on the embedded runtime.
+3. **Environment Isolation**: On startup, it overrides or prepends critical ImageMagick environment variables (like `MAGICK_HOME`, `MAGICK_CODER_MODULE_PATH`, `MAGICK_FILTER_MODULE_PATH`, `MAGICK_CONFIGURE_PATH`, and `LD_LIBRARY_PATH` / `DYLD_LIBRARY_PATH`) for the running process.
+4. **Dynamic Security Policies**: Instead of reading system-wide configurations, it generates and applies a temporary strict security policy (`--policy safe`) by default to prevent execution of unbundled external delegates.
+
+### Known Limitations
+
+| Format or Feature | Limitation | Details |
+| --- | --- | --- |
+| **PDF, PS, EPS** | Safe Policy & External Ghostscript dependency | Blocked by default under `--policy safe`. Requires `--policy permissive` (or `--unsafe-enable-pdf`) and relies on `gs` (Ghostscript) for **reading/rasterization**. While writing is done internally, reading will fail if a functional `gs` binary with proper fonts/libraries is missing on the target host. |
+| **HEIC, HEIF, AVIF Write** | Encoder/Delegate limitations | Decoding (reading) is fully supported via `libheif`. However, encoding (writing) may fail or be unsupported depending on how encoders (`x265`, `aom`, `rav1e`) are dynamically linked. |
+| **JXL (JPEG XL)** | macOS Coder Module loading | Fully supported on Linux. On macOS, direct loading of the JXL coder module via `purego` / `libMagickWand` is unsupported due to dynamic linker behaviors and is skipped in tests. |
+| **Camera RAW** | OS and Read-Only limitations | On Linux, supported for **read-only** (decoding only) via `libraw`. On macOS, it is **not supported at all** because the macOS runtime build script configures ImageMagick with `--without-raw`. |
+| **SVG Write** | Vectorization binary dependency | Writing a raster image to vector SVG format requires the external `potrace` delegate binary. Since `potrace` is not bundled, vectorization on write will fail unless `potrace` is pre-installed on the host. |
+| **Video Formats (MP4, etc.)** | Unbundled `ffmpeg` | Reading/writing video formats (like MP4, AVI, WEBM) requires the external `ffmpeg` binary. Because `ffmpeg` is not bundled, video operations will fail unless `ffmpeg` is installed on the host and `--policy permissive` is active. |
 
 ## Development
 
@@ -193,9 +222,58 @@ CGO_ENABLED=0 go build -o dist/magickgo ./cmd/magickgo
 The repository does not commit runtime bundles. CI builds them from source with:
 
 ```sh
-bash scripts/build-runtime-linux.sh linux-amd64 internal/runtimebundle/assets/runtime-linux-amd64.tar.zst
-bash scripts/build-runtime-darwin.sh darwin-arm64 internal/runtimebundle/assets/runtime-darwin-arm64.tar.zst
+bash scripts/build-runtime-linux.sh linux-amd64 pkg/runtimebundle/assets/runtime-linux-amd64.tar.zst
+bash scripts/build-runtime-darwin.sh darwin-arm64 pkg/runtimebundle/assets/runtime-darwin-arm64.tar.zst
 ```
 
 CI caches runtime archives by script content hash, so the first runtime build is
 the slow path and unchanged builds reuse the cache.
+
+## Library Usage
+
+`magick-go` can be imported as a Go library. It requires `CGO_ENABLED=0` to build and doesn't require ImageMagick to be installed on the host system.
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+	"os"
+
+	"github.com/yashikota/magick-go/pkg/magick"
+	"github.com/yashikota/magick-go/pkg/runtimebundle"
+)
+
+func main() {
+	// 1. Ensure the runtime is extracted and configure the environment
+	bundle, err := runtimebundle.Ensure()
+	if err != nil {
+		log.Fatalf("failed to ensure runtime: %v", err)
+	}
+	
+	// Apply the default safe policy (blocking PDF, URL, etc.)
+	policyDir, err := runtimebundle.ApplyPolicy(false)
+	if err != nil {
+		log.Fatalf("failed to apply policy: %v", err)
+	}
+	defer os.RemoveAll(policyDir)
+
+	runtimebundle.ConfigureEnvironment(bundle.Root, policyDir)
+
+	// 2. Load the shared library
+	if _, err := magick.Load(bundle.Root); err != nil {
+		log.Fatalf("failed to load libMagickWand: %v", err)
+	}
+
+	// 3. Convert an image
+	err = magick.Convert("input.png", "output.webp", magick.ConvertOptions{
+		Quality: 85,
+		Strip:   true,
+	})
+	if err != nil {
+		log.Fatalf("conversion failed: %v", err)
+	}
+	fmt.Println("Conversion successful!")
+}
+```

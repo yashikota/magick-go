@@ -3,9 +3,11 @@ package runtimebundle
 import (
 	"os"
 	"path/filepath"
+	"time"
 )
 
 func ApplyPolicy(permissive bool) (string, error) {
+	cleanupOldPolicies()
 	dir, err := os.MkdirTemp("", "magickgo-policy-*")
 	if err != nil {
 		return "", err
@@ -19,6 +21,25 @@ func ApplyPolicy(permissive bool) (string, error) {
 		return "", err
 	}
 	return dir, nil
+}
+
+func cleanupOldPolicies() {
+	tempDir := os.TempDir()
+	pattern := filepath.Join(tempDir, "magickgo-policy-*")
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		return
+	}
+	now := time.Now()
+	for _, match := range matches {
+		info, err := os.Stat(match)
+		if err != nil {
+			continue
+		}
+		if now.Sub(info.ModTime()) > 1*time.Hour {
+			_ = os.RemoveAll(match)
+		}
+	}
 }
 
 const safePolicyXML = `<?xml version="1.0" encoding="UTF-8"?>

@@ -38,7 +38,7 @@ jobs:
         id: cache-runtime
         uses: actions/cache@v4
         with:
-          path: internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst
+          path: pkg/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst
           key: runtime-${{ matrix.runtime }}-${{ hashFiles('scripts/build-runtime-*.sh') }}-v5
       - name: Cache Docker image
         if: matrix.goos == 'linux' && steps.cache-runtime.outputs.cache-hit != 'true'
@@ -61,21 +61,21 @@ jobs:
         timeout-minutes: 60
         run: |
           if [ "${{ matrix.goos }}" = "darwin" ]; then
-            bash scripts/build-runtime-darwin.sh "${{ matrix.runtime }}" "internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst"
+            bash scripts/build-runtime-darwin.sh "${{ matrix.runtime }}" "pkg/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst"
           else
             docker run --rm \
               -v "$(pwd)":/workspace \
               -w /workspace \
               magick-go-builder \
-              bash scripts/build-runtime-linux.sh "${{ matrix.runtime }}" "internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst"
-            sudo chmod -R a+rw internal/runtimebundle/assets/
+              bash scripts/build-runtime-linux.sh "${{ matrix.runtime }}" "pkg/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst"
+            sudo chmod -R a+rw pkg/runtimebundle/assets/
           fi
       - name: Test
         run: |
           # Ensure() extracts the runtime and returns the lib path.
           # We must set LD_LIBRARY_PATH/DYLD_LIBRARY_PATH BEFORE go test
           # because CGO_ENABLED=0 dlopen cannot pick up setenv changes.
-          libpath=$(go run ./internal/runtimebundle/printlibpath)
+          libpath=$(go run ./pkg/runtimebundle/printlibpath)
           echo "Runtime lib path: ${libpath}"
           if [ "${{ matrix.goos }}" = "darwin" ]; then
             export DYLD_LIBRARY_PATH="${libpath}"

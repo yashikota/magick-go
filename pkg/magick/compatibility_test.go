@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yashikota/magick-go/internal/magick"
+	"github.com/yashikota/magick-go/pkg/magick"
 )
 
 var update = flag.Bool("update", false, "update golden files using host tools (magick/ffmpeg)")

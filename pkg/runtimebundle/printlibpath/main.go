@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/yashikota/magick-go/internal/runtimebundle"
+	"github.com/yashikota/magick-go/pkg/runtimebundle"
 )
 
 func main() {
