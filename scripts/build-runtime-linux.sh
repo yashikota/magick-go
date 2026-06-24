@@ -13,6 +13,10 @@ rm -rf "${root}" "${build}"
 mkdir -p "${root}"/{bin,lib,etc,share}
 mkdir -p "${build}" "${prefix}"
 
+if ! command -v sudo >/dev/null 2>&1; then
+  sudo() { "$@"; }
+fi
+
 sudo apt-get update
 sudo apt-get install -y \
   autoconf \

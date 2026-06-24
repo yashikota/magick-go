@@ -39,7 +39,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst
-          key: runtime-${{ matrix.runtime }}-${{ hashFiles('scripts/build-runtime-*.sh') }}-v4
+          key: runtime-${{ matrix.runtime }}-${{ hashFiles('scripts/build-runtime-*.sh') }}-v5
       - name: Build ImageMagick runtime
         if: steps.cache-runtime.outputs.cache-hit != 'true'
         timeout-minutes: 60
@@ -47,7 +47,12 @@ jobs:
           if [ "${{ matrix.goos }}" = "darwin" ]; then
             bash scripts/build-runtime-darwin.sh "${{ matrix.runtime }}" "internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst"
           else
-            bash scripts/build-runtime-linux.sh "${{ matrix.runtime }}" "internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst"
+            docker run --rm \
+              -v "$(pwd)":/workspace \
+              -w /workspace \
+              ubuntu:24.04 \
+              bash scripts/build-runtime-linux.sh "${{ matrix.runtime }}" "internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst"
+            sudo chmod -R a+rw internal/runtimebundle/assets/
           fi
       - name: Test
         run: |
@@ -92,7 +97,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst
-          key: runtime-${{ matrix.runtime }}-${{ hashFiles('scripts/build-runtime-*.sh') }}-v4
+          key: runtime-${{ matrix.runtime }}-${{ hashFiles('scripts/build-runtime-*.sh') }}-v5
       - name: Build ImageMagick runtime
         if: steps.cache-runtime.outputs.cache-hit != 'true'
         timeout-minutes: 60
@@ -100,7 +105,12 @@ jobs:
           if [ "${{ matrix.goos }}" = "darwin" ]; then
             bash scripts/build-runtime-darwin.sh "${{ matrix.runtime }}" "internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst"
           else
-            bash scripts/build-runtime-linux.sh "${{ matrix.runtime }}" "internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst"
+            docker run --rm \
+              -v "$(pwd)":/workspace \
+              -w /workspace \
+              ubuntu:24.04 \
+              bash scripts/build-runtime-linux.sh "${{ matrix.runtime }}" "internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst"
+            sudo chmod -R a+rw internal/runtimebundle/assets/
           fi
       - name: Build binary
         env:
