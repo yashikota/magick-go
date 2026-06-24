@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/yashikota/mahou/magick"
+	"github.com/yashikota/mahou/mahou"
 )
 
 func runConvert(args []string) error {
@@ -22,11 +22,11 @@ func runConvert(args []string) error {
 		return err
 	}
 	defer ctx.Close()
-	return magick.Convert(fs.Arg(0), fs.Arg(1), convertOptions(opts))
+	return mahou.Convert(fs.Arg(0), fs.Arg(1), convertOptions(opts))
 }
 
-func convertOptions(opts commonOptions) magick.ConvertOptions {
-	return magick.ConvertOptions{
+func convertOptions(opts commonOptions) mahou.ConvertOptions {
+	return mahou.ConvertOptions{
 		Quality:    opts.quality,
 		Strip:      opts.strip,
 		AutoOrient: opts.autoOrient,

@@ -238,7 +238,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/yashikota/mahou/magick"
+	"github.com/yashikota/mahou/mahou"
 	"github.com/yashikota/mahou/runtimebundle"
 )
 
@@ -259,12 +259,12 @@ func main() {
 	runtimebundle.ConfigureEnvironment(bundle.Root, policyDir)
 
 	// 2. 共有ライブラリをロードして purego のバインドを初期化
-	if _, err := magick.Load(bundle.Root); err != nil {
+	if _, err := mahou.Load(bundle.Root); err != nil {
 		log.Fatalf("libMagickWandのロードに失敗しました: %v", err)
 	}
 
 	// 3. 画像変換を実行
-	err = magick.Convert("input.png", "output.webp", magick.ConvertOptions{
+	err = mahou.Convert("input.png", "output.webp", mahou.ConvertOptions{
 		Quality: 85,
 		Strip:   true,
 	})

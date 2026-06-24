@@ -241,7 +241,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/yashikota/mahou/magick"
+	"github.com/yashikota/mahou/mahou"
 	"github.com/yashikota/mahou/runtimebundle"
 )
 
@@ -262,12 +262,12 @@ func main() {
 	runtimebundle.ConfigureEnvironment(bundle.Root, policyDir)
 
 	// 2. Load the shared library
-	if _, err := magick.Load(bundle.Root); err != nil {
+	if _, err := mahou.Load(bundle.Root); err != nil {
 		log.Fatalf("failed to load libMagickWand: %v", err)
 	}
 
 	// 3. Convert an image
-	err = magick.Convert("input.png", "output.webp", magick.ConvertOptions{
+	err = mahou.Convert("input.png", "output.webp", mahou.ConvertOptions{
 		Quality: 85,
 		Strip:   true,
 	})

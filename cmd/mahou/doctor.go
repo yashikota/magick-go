@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/yashikota/mahou/magick"
+	"github.com/yashikota/mahou/mahou"
 	"github.com/yashikota/mahou/runtimebundle"
 )
 
@@ -43,7 +43,7 @@ func runDoctor(args []string) error {
 		return err
 	}
 	defer ctx.Close()
-	diag := magick.DiagnosticsInfo()
+	diag := mahou.DiagnosticsInfo()
 	formats := diag.Formats
 	support := diag.Support
 	if len(formats) == 0 {

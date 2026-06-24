@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/yashikota/mahou/magick"
+	"github.com/yashikota/mahou/mahou"
 )
 
 func runFormats(args []string) error {
@@ -20,7 +20,7 @@ func runFormats(args []string) error {
 		return err
 	}
 	defer ctx.Close()
-	formats := magick.Formats()
+	formats := mahou.Formats()
 	if opts.json {
 		return printJSON(formats)
 	}

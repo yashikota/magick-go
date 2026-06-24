@@ -1,4 +1,4 @@
-package magick_test
+package mahou_test
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yashikota/mahou/magick"
+	"github.com/yashikota/mahou/mahou"
 )
 
 var update = flag.Bool("update", false, "update golden files using host tools (magick/ffmpeg)")
@@ -317,7 +317,7 @@ func TestAllFormatsCompatibility(t *testing.T) {
 		inputPNG := filepath.Join(testdataDir, "input.png")
 		createSolidPNG(t, inputPNG, 10, 10)
 
-		formats := magick.Formats()
+		formats := mahou.Formats()
 		t.Logf("Updating golden files for %d formats...", len(formats))
 
 		for _, format := range formats {
@@ -367,8 +367,8 @@ func TestAllFormatsCompatibility(t *testing.T) {
 			goOutputFile := filepath.Join(writeDir, fmt.Sprintf("%s.%s", format, ext))
 			removeMatches(t, filepath.Join(writeDir, fmt.Sprintf("%s*", format)))
 
-			opts := magick.ConvertOptions{Format: format}
-			errGoWrite := magick.Convert(inputPNG, goOutputFile, opts)
+			opts := mahou.ConvertOptions{Format: format}
+			errGoWrite := mahou.Convert(inputPNG, goOutputFile, opts)
 			if errGoWrite != nil {
 				removeMatches(t, filepath.Join(writeDir, fmt.Sprintf("%s*", format))) // Clean up
 				t.Logf("mahou cannot write format %s, skipping write golden generation: %v", format, errGoWrite)
@@ -418,7 +418,7 @@ func TestAllFormatsCompatibility(t *testing.T) {
 			filePath := filepath.Join(readDir, filename)
 
 			// 1.1 Identify the file using mahou
-			info, errIdent := magick.Identify(filePath)
+			info, errIdent := mahou.Identify(filePath)
 			if errIdent != nil {
 				if isDelegateError(errIdent) {
 					t.Skipf("mahou does not support reading %s (no delegate): %v", format, errIdent)
@@ -432,7 +432,7 @@ func TestAllFormatsCompatibility(t *testing.T) {
 			// 1.2 Convert to PNG
 			dir := t.TempDir()
 			decodedPNG := filepath.Join(dir, "decoded.png")
-			errConv := magick.Convert(filePath, decodedPNG, magick.ConvertOptions{})
+			errConv := mahou.Convert(filePath, decodedPNG, mahou.ConvertOptions{})
 			if errConv != nil {
 				if isDelegateError(errConv) {
 					t.Skipf("mahou does not support decoding %s (no delegate): %v", format, errConv)
@@ -456,7 +456,7 @@ func TestAllFormatsCompatibility(t *testing.T) {
 				compareImages(t, inputPNG, decodedFile, maxDiff)
 			} else {
 				// For monochrome or highly specialized layouts, just check if it's identified properly
-				decInfo, errDecIdent := magick.Identify(decodedFile)
+				decInfo, errDecIdent := mahou.Identify(decodedFile)
 				if errDecIdent != nil || decInfo.Width == 0 || decInfo.Height == 0 {
 					t.Fatalf("decoded file is invalid or unidentifiable")
 				}
@@ -491,8 +491,8 @@ func TestAllFormatsCompatibility(t *testing.T) {
 			tempOut := filepath.Join(dir, "out"+ext)
 
 			// 2.1 Convert input PNG to target format
-			opts := magick.ConvertOptions{Format: format}
-			errGoWrite := magick.Convert(inputPNG, tempOut, opts)
+			opts := mahou.ConvertOptions{Format: format}
+			errGoWrite := mahou.Convert(inputPNG, tempOut, opts)
 			if errGoWrite != nil {
 				if isDelegateError(errGoWrite) {
 					t.Skipf("mahou does not support writing %s (no delegate): %v", format, errGoWrite)
@@ -516,13 +516,13 @@ func TestAllFormatsCompatibility(t *testing.T) {
 			tempPNG := filepath.Join(dir, "temp.png")
 			goldenPNG := filepath.Join(dir, "golden.png")
 
-			if err := magick.Convert(tempOutFile, tempPNG, magick.ConvertOptions{}); err != nil {
+			if err := mahou.Convert(tempOutFile, tempPNG, mahou.ConvertOptions{}); err != nil {
 				if isDelegateError(err) {
 					t.Skipf("mahou does not support decoding %s (no delegate): %v", format, err)
 				}
 				t.Fatalf("failed to decode mahou output: %v", err)
 			}
-			if err := magick.Convert(goldenPath, goldenPNG, magick.ConvertOptions{}); err != nil {
+			if err := mahou.Convert(goldenPath, goldenPNG, mahou.ConvertOptions{}); err != nil {
 				if isDelegateError(err) {
 					t.Skipf("mahou does not support decoding golden %s (no delegate): %v", format, err)
 				}
@@ -543,7 +543,7 @@ func TestAllFormatsCompatibility(t *testing.T) {
 				}
 				compareImages(t, matchesGoldenPNG[0], matchesTempPNG[0], maxDiff)
 			} else {
-				decInfo, errDecIdent := magick.Identify(matchesTempPNG[0])
+				decInfo, errDecIdent := mahou.Identify(matchesTempPNG[0])
 				if errDecIdent != nil || decInfo.Width == 0 || decInfo.Height == 0 {
 					t.Fatalf("decoded output is invalid or unidentifiable")
 				}

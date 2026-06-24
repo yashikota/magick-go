@@ -1,4 +1,4 @@
-package magick_test
+package mahou_test
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/yashikota/mahou/magick"
+	"github.com/yashikota/mahou/mahou"
 	"github.com/yashikota/mahou/runtimebundle"
 )
 
@@ -25,7 +25,7 @@ var (
 func getSupportedFormats() map[string]bool {
 	formatsOnce.Do(func() {
 		supportedFormats = make(map[string]bool)
-		for _, f := range magick.Formats() {
+		for _, f := range mahou.Formats() {
 			supportedFormats[strings.ToUpper(f)] = true
 		}
 	})
@@ -47,7 +47,7 @@ func setup(t *testing.T) {
 		// ConfigureEnvironment must be called BEFORE Load so that
 		// MagickWandGenesis picks up MAGICK_CODER_MODULE_PATH etc.
 		runtimebundle.ConfigureEnvironment(bundle.Root, policyDir)
-		if _, err := magick.Load(bundle.Root); err != nil {
+		if _, err := mahou.Load(bundle.Root); err != nil {
 			t.Fatalf("load magick: %v", err)
 		}
 		testBundle = bundle
@@ -77,7 +77,7 @@ func TestIdentify(t *testing.T) {
 	input := filepath.Join(dir, "test.png")
 	createTestPNG(t, input)
 
-	info, err := magick.Identify(input)
+	info, err := mahou.Identify(input)
 	if err != nil {
 		t.Fatalf("Identify: %v", err)
 	}
@@ -96,12 +96,12 @@ func TestResize(t *testing.T) {
 	output := filepath.Join(dir, "resized.png")
 	createTestPNG(t, input)
 
-	err := magick.Resize(input, output, 2, magick.ConvertOptions{})
+	err := mahou.Resize(input, output, 2, mahou.ConvertOptions{})
 	if err != nil {
 		t.Fatalf("Resize: %v", err)
 	}
 
-	info, err := magick.Identify(output)
+	info, err := mahou.Identify(output)
 	if err != nil {
 		t.Fatalf("Identify resized: %v", err)
 	}
@@ -249,12 +249,12 @@ func TestConvertFormats(t *testing.T) {
 			output := filepath.Join(dir, "output."+f.ext)
 			createTestPNG(t, input)
 
-			opts := magick.ConvertOptions{}
+			opts := mahou.ConvertOptions{}
 			if f.name != f.ext {
 				opts.Format = f.name
 			}
 
-			err := magick.Convert(input, output, opts)
+			err := mahou.Convert(input, output, opts)
 			if err != nil {
 				t.Fatalf("Convert PNG->%s: %v", f.name, err)
 			}
@@ -319,14 +319,14 @@ func TestRoundTrip(t *testing.T) {
 			output := filepath.Join(dir, "output.png")
 			createTestPNG(t, input)
 
-			if err := magick.Convert(input, mid, magick.ConvertOptions{}); err != nil {
+			if err := mahou.Convert(input, mid, mahou.ConvertOptions{}); err != nil {
 				t.Fatalf("Convert PNG->%s: %v", f.name, err)
 			}
-			if err := magick.Convert(mid, output, magick.ConvertOptions{}); err != nil {
+			if err := mahou.Convert(mid, output, mahou.ConvertOptions{}); err != nil {
 				t.Fatalf("Convert %s->PNG: %v", f.name, err)
 			}
 
-			info, err := magick.Identify(output)
+			info, err := mahou.Identify(output)
 			if err != nil {
 				t.Fatalf("Identify: %v", err)
 			}
@@ -339,7 +339,7 @@ func TestRoundTrip(t *testing.T) {
 
 func TestFormats(t *testing.T) {
 	setup(t)
-	formats := magick.Formats()
+	formats := mahou.Formats()
 	if len(formats) == 0 {
 		t.Fatal("Formats returned empty list")
 	}

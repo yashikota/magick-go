@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/yashikota/mahou/magick"
+	"github.com/yashikota/mahou/mahou"
 )
 
 func runResize(args []string) error {
@@ -27,5 +27,5 @@ func runResize(args []string) error {
 		return err
 	}
 	defer ctx.Close()
-	return magick.Resize(fs.Arg(0), fs.Arg(1), width, convertOptions(opts))
+	return mahou.Resize(fs.Arg(0), fs.Arg(1), width, convertOptions(opts))
 }

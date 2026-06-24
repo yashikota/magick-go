@@ -14,7 +14,7 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/yashikota/mahou/magick"
+	"github.com/yashikota/mahou/mahou"
 	"github.com/yashikota/mahou/runtimebundle"
 )
 
@@ -31,7 +31,7 @@ type commonOptions struct {
 
 type appContext struct {
 	bundle    *runtimebundle.Bundle
-	lib       *magick.Library
+	lib       *mahou.Library
 	configDir string
 	closeOnce sync.Once
 }
@@ -201,7 +201,7 @@ func initialize(opts commonOptions) (*appContext, error) {
 		return nil, err
 	}
 	runtimebundle.ConfigureEnvironment(bundle.Root, configDir)
-	lib, err := magick.Load(bundle.Root)
+	lib, err := mahou.Load(bundle.Root)
 	if err != nil {
 		_ = os.RemoveAll(configDir)
 		return nil, err

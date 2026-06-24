@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/yashikota/mahou/magick"
+	"github.com/yashikota/mahou/mahou"
 )
 
 func runIdentify(args []string) error {
@@ -23,7 +23,7 @@ func runIdentify(args []string) error {
 		return err
 	}
 	defer ctx.Close()
-	info, err := magick.Identify(fs.Arg(0))
+	info, err := mahou.Identify(fs.Arg(0))
 	if err != nil {
 		return err
 	}
