@@ -40,6 +40,22 @@ jobs:
         with:
           path: internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst
           key: runtime-${{ matrix.runtime }}-${{ hashFiles('scripts/build-runtime-*.sh') }}-v5
+      - name: Cache Docker image
+        if: matrix.goos == 'linux' && steps.cache-runtime.outputs.cache-hit != 'true'
+        id: cache-docker
+        uses: actions/cache@v4
+        with:
+          path: /tmp/docker-image.tar
+          key: docker-image-${{ hashFiles('docker/builder.Dockerfile') }}
+      - name: Build Docker image
+        if: matrix.goos == 'linux' && steps.cache-runtime.outputs.cache-hit != 'true' && steps.cache-docker.outputs.cache-hit != 'true'
+        run: |
+          docker build -t magick-go-builder -f docker/builder.Dockerfile .
+          mkdir -p /tmp
+          docker save magick-go-builder -o /tmp/docker-image.tar
+      - name: Load Docker image
+        if: matrix.goos == 'linux' && steps.cache-runtime.outputs.cache-hit != 'true' && steps.cache-docker.outputs.cache-hit == 'true'
+        run: docker load -i /tmp/docker-image.tar
       - name: Build ImageMagick runtime
         if: steps.cache-runtime.outputs.cache-hit != 'true'
         timeout-minutes: 60
@@ -50,7 +66,7 @@ jobs:
             docker run --rm \
               -v "$(pwd)":/workspace \
               -w /workspace \
-              ubuntu:24.04 \
+              magick-go-builder \
               bash scripts/build-runtime-linux.sh "${{ matrix.runtime }}" "internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst"
             sudo chmod -R a+rw internal/runtimebundle/assets/
           fi
@@ -98,6 +114,22 @@ jobs:
         with:
           path: internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst
           key: runtime-${{ matrix.runtime }}-${{ hashFiles('scripts/build-runtime-*.sh') }}-v5
+      - name: Cache Docker image
+        if: matrix.goos == 'linux' && steps.cache-runtime.outputs.cache-hit != 'true'
+        id: cache-docker
+        uses: actions/cache@v4
+        with:
+          path: /tmp/docker-image.tar
+          key: docker-image-${{ hashFiles('docker/builder.Dockerfile') }}
+      - name: Build Docker image
+        if: matrix.goos == 'linux' && steps.cache-runtime.outputs.cache-hit != 'true' && steps.cache-docker.outputs.cache-hit != 'true'
+        run: |
+          docker build -t magick-go-builder -f docker/builder.Dockerfile .
+          mkdir -p /tmp
+          docker save magick-go-builder -o /tmp/docker-image.tar
+      - name: Load Docker image
+        if: matrix.goos == 'linux' && steps.cache-runtime.outputs.cache-hit != 'true' && steps.cache-docker.outputs.cache-hit == 'true'
+        run: docker load -i /tmp/docker-image.tar
       - name: Build ImageMagick runtime
         if: steps.cache-runtime.outputs.cache-hit != 'true'
         timeout-minutes: 60
@@ -108,7 +140,7 @@ jobs:
             docker run --rm \
               -v "$(pwd)":/workspace \
               -w /workspace \
-              ubuntu:24.04 \
+              magick-go-builder \
               bash scripts/build-runtime-linux.sh "${{ matrix.runtime }}" "internal/runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst"
             sudo chmod -R a+rw internal/runtimebundle/assets/
           fi

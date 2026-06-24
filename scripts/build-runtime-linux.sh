@@ -17,46 +17,48 @@ if ! command -v sudo >/dev/null 2>&1; then
   sudo() { "$@"; }
 fi
 
-sudo apt-get update
-sudo apt-get install -y \
-  autoconf \
-  automake \
-  build-essential \
-  curl \
-  fontconfig \
-  ghostscript \
-  libbz2-dev \
-  libdjvulibre-dev \
-  libfftw3-dev \
-  libfontconfig1-dev \
-  libfreetype6-dev \
-  libheif-dev \
-  libjbig-dev \
-  libjpeg-dev \
-  libjxl-dev \
-  liblcms2-dev \
-  liblqr-1-0-dev \
-  libltdl-dev \
-  liblzma-dev \
-  libopenexr-dev \
-  libopenjp2-7-dev \
-  libpango1.0-dev \
-  libpng-dev \
-  libraqm-dev \
-  librsvg2-dev \
-  libraw-dev \
-  libtiff-dev \
-  libtool \
-  libwebp-dev \
-  libwmf-dev \
-  libxml2-dev \
-  libzip-dev \
-  patchelf \
-  pkg-config \
-  tar \
-  xz-utils \
-  zlib1g-dev \
-  zstd
+if [ -z "${MAGICKGO_BUILDER:-}" ]; then
+  sudo apt-get update
+  sudo apt-get install -y \
+    autoconf \
+    automake \
+    build-essential \
+    curl \
+    fontconfig \
+    ghostscript \
+    libbz2-dev \
+    libdjvulibre-dev \
+    libfftw3-dev \
+    libfontconfig1-dev \
+    libfreetype6-dev \
+    libheif-dev \
+    libjbig-dev \
+    libjpeg-dev \
+    libjxl-dev \
+    liblcms2-dev \
+    liblqr-1-0-dev \
+    libltdl-dev \
+    liblzma-dev \
+    libopenexr-dev \
+    libopenjp2-7-dev \
+    libpango1.0-dev \
+    libpng-dev \
+    libraqm-dev \
+    librsvg2-dev \
+    libraw-dev \
+    libtiff-dev \
+    libtool \
+    libwebp-dev \
+    libwmf-dev \
+    libxml2-dev \
+    libzip-dev \
+    patchelf \
+    pkg-config \
+    tar \
+    xz-utils \
+    zlib1g-dev \
+    zstd
+fi
 
 curl -fsSL "${imagemagick_url}" -o "${build}/imagemagick.tar.xz"
 tar -C "${build}" --strip-components=1 -xJf "${build}/imagemagick.tar.xz"
