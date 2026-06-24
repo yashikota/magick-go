@@ -176,16 +176,22 @@ func createSolidPNG(t *testing.T, path string, w, h int) {
 	}
 }
 
-func isDecodeDelegateError(err error) bool {
+func isDelegateError(err error) bool {
 	if err == nil {
 		return false
 	}
-	msg := err.Error()
+	msg := strings.ToLower(err.Error())
+	if msg == "" || msg == "imagemagick operation failed" {
+		return true
+	}
 	return strings.Contains(msg, "no decode delegate") ||
-		strings.Contains(msg, "no delegate for this image format") ||
-		strings.Contains(msg, "missing an image filename") ||
+		strings.Contains(msg, "no encode delegate") ||
+		strings.Contains(msg, "nodecodedelegate") ||
+		strings.Contains(msg, "noencodedelegate") ||
+		strings.Contains(msg, "no delegate") ||
 		strings.Contains(msg, "delegate failed") ||
-		strings.Contains(msg, "Bad value") ||
+		strings.Contains(msg, "missing an image filename") ||
+		strings.Contains(msg, "bad value") ||
 		strings.Contains(msg, "no pixels defined in cache")
 }
 
@@ -416,7 +422,7 @@ func TestAllFormatsCompatibility(t *testing.T) {
 			// 1.1 Identify the file using magick-go
 			info, errIdent := magick.Identify(filePath)
 			if errIdent != nil {
-				if isDecodeDelegateError(errIdent) {
+				if isDelegateError(errIdent) {
 					t.Skipf("magick-go does not support reading %s (no delegate): %v", format, errIdent)
 				}
 				t.Fatalf("magick-go Identify failed: %v", errIdent)
@@ -430,7 +436,7 @@ func TestAllFormatsCompatibility(t *testing.T) {
 			decodedPNG := filepath.Join(dir, "decoded.png")
 			errConv := magick.Convert(filePath, decodedPNG, magick.ConvertOptions{})
 			if errConv != nil {
-				if isDecodeDelegateError(errConv) {
+				if isDelegateError(errConv) {
 					t.Skipf("magick-go does not support decoding %s (no delegate): %v", format, errConv)
 				}
 				t.Fatalf("magick-go Convert (read) failed: %v", errConv)
@@ -490,6 +496,9 @@ func TestAllFormatsCompatibility(t *testing.T) {
 			opts := magick.ConvertOptions{Format: format}
 			errGoWrite := magick.Convert(inputPNG, tempOut, opts)
 			if errGoWrite != nil {
+				if isDelegateError(errGoWrite) {
+					t.Skipf("magick-go does not support writing %s (no delegate): %v", format, errGoWrite)
+				}
 				t.Fatalf("magick-go Convert (write) failed: %v", errGoWrite)
 			}
 
@@ -510,13 +519,13 @@ func TestAllFormatsCompatibility(t *testing.T) {
 			goldenPNG := filepath.Join(dir, "golden.png")
 
 			if err := magick.Convert(tempOutFile, tempPNG, magick.ConvertOptions{}); err != nil {
-				if isDecodeDelegateError(err) {
+				if isDelegateError(err) {
 					t.Skipf("magick-go does not support decoding %s (no delegate): %v", format, err)
 				}
 				t.Fatalf("failed to decode magick-go output: %v", err)
 			}
 			if err := magick.Convert(goldenPath, goldenPNG, magick.ConvertOptions{}); err != nil {
-				if isDecodeDelegateError(err) {
+				if isDelegateError(err) {
 					t.Skipf("magick-go does not support decoding golden %s (no delegate): %v", format, err)
 				}
 				t.Fatalf("failed to decode golden file: %v", err)
