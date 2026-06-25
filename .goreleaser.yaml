@@ -1,0 +1,35 @@
+version: 2
+
+project_name: mahou
+
+builds:
+  - id: mahou
+    main: ./cmd/mahou
+    binary: mahou
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: darwin
+        goarch: amd64
+
+archives:
+  - id: mahou
+    builds:
+      - mahou
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- if eq .Os "darwin" }}mac{{ else }}{{ .Os }}{{ end }}_
+      {{- .Arch }}
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  use: github
