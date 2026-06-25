@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM debian:bookworm
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV MAHOU_BUILDER=1

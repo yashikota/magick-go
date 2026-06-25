@@ -52,7 +52,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: runtimebundle/assets/runtime-${{ matrix.runtime }}.tar.zst
-          key: runtime-${{ matrix.runtime }}-${{ hashFiles('scripts/build-runtime-*.sh') }}-v5
+          key: runtime-${{ matrix.runtime }}-${{ hashFiles('scripts/build-runtime-*.sh', 'docker/builder.Dockerfile') }}-v6
 
       - name: Cache Docker image
         if: matrix.goos == 'linux' && steps.cache-runtime.outputs.cache-hit != 'true'
