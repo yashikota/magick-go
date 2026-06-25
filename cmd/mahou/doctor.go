@@ -16,6 +16,16 @@ import (
 	"github.com/yashikota/mahou/runtimebundle"
 )
 
+var doctorFormats = []string{
+	"JPEG", "PNG", "WEBP", "TIFF", "GIF", "BMP", "ICO",
+	"HEIC", "AVIF", "JXL",
+	"SVG", "PDF", "EPS", "PS",
+	"EXR", "PSD", "DPX", "HDR",
+	"JP2",
+	"PNM",
+	"DNG",
+}
+
 type doctorReport struct {
 	Target              string            `json:"target"`
 	RuntimeRoot         string            `json:"runtime_root"`
@@ -46,11 +56,10 @@ func runDoctor(args []string) error {
 	defer ctx.Close()
 	diag := mahou.DiagnosticsInfo()
 	formats := diag.Formats
-	support := diag.Support
 	if len(formats) == 0 {
 		formats = cliFormats(ctx.bundle.Root)
-		support = formatSupport(formats)
 	}
+	support := formatSupport(formats)
 	if support != nil && !isGhostscriptFunctional(ctx.bundle.Root) {
 		support["PDF"] = false
 	}
@@ -84,15 +93,7 @@ func formatSupport(formats []string) map[string]bool {
 		set[f] = struct{}{}
 	}
 	support := make(map[string]bool)
-	for _, name := range []string{
-		"JPEG", "PNG", "WEBP", "TIFF", "GIF", "BMP", "ICO",
-		"HEIC", "AVIF", "JXL",
-		"SVG", "PDF", "EPS", "PS",
-		"EXR", "PSD", "DPX", "HDR",
-		"JP2",
-		"PNM",
-		"DNG",
-	} {
+	for _, name := range doctorFormats {
 		_, ok := set[name]
 		support[name] = ok
 	}
@@ -143,15 +144,7 @@ func printDoctor(r doctorReport, verbose bool) {
 			fmt.Fprintln(os.Stdout, " ", note)
 		}
 	}
-	for _, name := range []string{
-		"JPEG", "PNG", "WEBP", "TIFF", "GIF", "BMP", "ICO",
-		"HEIC", "AVIF", "JXL",
-		"SVG", "PDF", "EPS", "PS",
-		"EXR", "PSD", "DPX", "HDR",
-		"JP2",
-		"PNM",
-		"DNG",
-	} {
+	for _, name := range doctorFormats {
 		fmt.Fprintf(os.Stdout, "%s: %s\n", name, okText(r.FormatSupport[name]))
 	}
 	if verbose {
