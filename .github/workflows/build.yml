@@ -45,17 +45,17 @@ jobs:
         id: cache-docker
         uses: actions/cache@v4
         with:
-          path: /tmp/docker-image.tar
-          key: docker-image-${{ hashFiles('docker/builder.Dockerfile') }}
+          path: /tmp/docker-image-${{ matrix.runtime }}.tar
+          key: docker-image-${{ matrix.runtime }}-${{ hashFiles('docker/builder.Dockerfile') }}
       - name: Build Docker image
         if: matrix.goos == 'linux' && steps.cache-runtime.outputs.cache-hit != 'true' && steps.cache-docker.outputs.cache-hit != 'true'
         run: |
           docker build -t mahou-builder -f docker/builder.Dockerfile .
           mkdir -p /tmp
-          docker save mahou-builder -o /tmp/docker-image.tar
+          docker save mahou-builder -o /tmp/docker-image-${{ matrix.runtime }}.tar
       - name: Load Docker image
         if: matrix.goos == 'linux' && steps.cache-runtime.outputs.cache-hit != 'true' && steps.cache-docker.outputs.cache-hit == 'true'
-        run: docker load -i /tmp/docker-image.tar
+        run: docker load -i /tmp/docker-image-${{ matrix.runtime }}.tar
       - name: Build ImageMagick runtime
         if: steps.cache-runtime.outputs.cache-hit != 'true'
         timeout-minutes: 60
