@@ -252,6 +252,12 @@ var identifyAllowedFlags = map[string]bool{
 func hasUnrecognizedFlags(args []string, allowed map[string]bool) bool {
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
+		if arg == "--" {
+			break
+		}
+		if arg == "-" {
+			continue
+		}
 		if strings.HasPrefix(arg, "-") {
 			name := strings.TrimLeft(arg, "-")
 			if eq := strings.IndexByte(name, '='); eq >= 0 {
@@ -296,6 +302,10 @@ func extractCommonOptions(args []string) (commonOptions, []string, error) {
 	var cleanArgs []string
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
+		if arg == "--" {
+			cleanArgs = append(cleanArgs, args[i:]...)
+			break
+		}
 		if arg == "--policy" && i+1 < len(args) {
 			opts.policy = args[i+1]
 			i++

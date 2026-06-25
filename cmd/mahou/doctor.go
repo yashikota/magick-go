@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/yashikota/mahou/mahou"
 	"github.com/yashikota/mahou/runtimebundle"
@@ -50,7 +51,7 @@ func runDoctor(args []string) error {
 		formats = cliFormats(ctx.bundle.Root)
 		support = formatSupport(formats)
 	}
-	if !isGhostscriptFunctional(ctx.bundle.Root) {
+	if support != nil && !isGhostscriptFunctional(ctx.bundle.Root) {
 		support["PDF"] = false
 	}
 	report := doctorReport{
@@ -186,21 +187,29 @@ func missingLibraryNotes(root string) []string {
 	return notes
 }
 
+var (
+	gsFunctional     bool
+	gsFunctionalOnce sync.Once
+)
+
 func isGhostscriptFunctional(root string) bool {
-	// Check bundled gs
-	bundledGS := filepath.Join(root, "bin", "gs")
-	if info, err := os.Stat(bundledGS); err == nil && !info.IsDir() {
-		cmd := exec.Command(bundledGS, "--version")
-		if err := cmd.Run(); err == nil {
-			return true
+	gsFunctionalOnce.Do(func() {
+		bundledGS := filepath.Join(root, "bin", "gs")
+		if info, err := os.Stat(bundledGS); err == nil && !info.IsDir() {
+			cmd := exec.Command(bundledGS, "--version")
+			if err := cmd.Run(); err == nil {
+				gsFunctional = true
+				return
+			}
 		}
-	}
-	// Check system gs
-	cmd := exec.Command("gs", "--version")
-	if err := cmd.Run(); err == nil {
-		return true
-	}
-	return false
+		cmd := exec.Command("gs", "--version")
+		if err := cmd.Run(); err == nil {
+			gsFunctional = true
+			return
+		}
+		gsFunctional = false
+	})
+	return gsFunctional
 }
 
 func diagnosticLibraryFiles(root string) []string {

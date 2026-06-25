@@ -3,7 +3,13 @@ package runtimebundle
 import (
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
+)
+
+var (
+	lastCleanup   time.Time
+	lastCleanupMu sync.Mutex
 )
 
 func ApplyPolicy(permissive bool) (string, error) {
@@ -24,6 +30,14 @@ func ApplyPolicy(permissive bool) (string, error) {
 }
 
 func cleanupOldPolicies() {
+	lastCleanupMu.Lock()
+	if time.Since(lastCleanup) < 10*time.Minute {
+		lastCleanupMu.Unlock()
+		return
+	}
+	lastCleanup = time.Now()
+	lastCleanupMu.Unlock()
+
 	tempDir := os.TempDir()
 	pattern := filepath.Join(tempDir, "mahou-policy-*")
 	matches, err := filepath.Glob(pattern)
