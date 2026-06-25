@@ -26,6 +26,13 @@ tool with no system ImageMagick install and no CGO requirement.
 | Linux | arm64 | `linux-arm64` |
 | macOS | arm64 | `darwin-arm64` |
 
+### System requirements
+
+| Platform | Minimum version |
+| --- | --- |
+| Linux | GLIBC 2.36 (Debian 12 / Ubuntu 22.04 / RHEL 9 or later) |
+| macOS | macOS 14 Sonoma or later |
+
 ## Quick start
 
 Build a runtime bundle, then build the Go CLI:
